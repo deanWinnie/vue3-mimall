@@ -1,5 +1,5 @@
 import {createRouter,createWebHashHistory } from 'vue-router'
-// import Home from './pages/Home'
+import Home from './pages/Home'
 // import Index from './pages/index'
 
 export default new createRouter({
@@ -8,7 +8,7 @@ export default new createRouter({
         {
             path:'/',
             name:'home',
-            //component:Home,
+            component:Home,
             // redirect:'/index',
             // children:[
             //     {
@@ -28,11 +28,12 @@ export default new createRouter({
             //     },
             // ]
         },
-        // {
-        //     path:'/login',
-        //     name:'login',
-        //     component:resolve=>require(['./pages/login.vue'],resolve),
-        // },
+        {
+            path:'/login',
+            name:'login',
+            // component:resolve=>require(['./pages/login.vue'],resolve),
+            component:() => import('./pages/login.vue')
+        },
         // {
         //     path:'/register',
         //     name:'register',

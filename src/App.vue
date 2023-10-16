@@ -1,6 +1,5 @@
 <template>
   <div id="app">
-    小米商城
     <router-view></router-view>
   </div>
 </template>
@@ -8,37 +7,46 @@
 <script>
 import cookie from 'vue-cookie'
 import axios from 'axios'
-// import { userStore} from 'vuex'
+import { useStore} from 'vuex'
+import { onMounted } from 'vue'
 export default {
   name:'app',
-  components:{
 
-  },
-  data(){
-    return{
-    }
-  },
   setup(){
-    //const store = userStore()
-  },
-  mounted(){
-    if(cookie.get('userId')){
-      // this.getUser();
-      // this.getCartCount();
-    }
-  },
-  methods:{
-    getUser(){
+    const store = useStore()
+    const getUser = ()=>{
       axios.get('/user').then((res={})=>{
-        this.store.commit('saveUserName',res.username)
-      })
-    },
-    getCartCount(){
-      axios.get('/carts/products/sum').then((res=0)=>{
-        this.store.commit('saveCartCount',res)
+        store.commit('saveUserName',res.username)
       })
     }
-  }
+    const getCartCount = ()=>{
+      axios.get('/carts/products/sum').then((res=0)=>{
+        store.commit('saveCartCount',res)
+      })
+    }
+    onMounted(()=>{
+      if(cookie.get('userId')){
+        getUser();
+        getCartCount();
+      }
+    })
+    return {
+      getCartCount,
+      getUser
+    }
+  },
+  // methods:{
+  //   getUser(){
+  //     axios.get('/user').then((res={})=>{
+  //       this.store.commit('saveUserName',res.username)
+  //     })
+  //   },
+  //   getCartCount(){
+  //     axios.get('/carts/products/sum').then((res=0)=>{
+  //       this.store.commit('saveCartCount',res)
+  //     })
+  //   }
+  // }
   
 }
 </script>

@@ -34,7 +34,7 @@
                                         <img v-lazy=item.mainImage :alt="item.subtitle">
                                     </div>
                                     <div class="pro-name">{{item.name}}</div>
-                                    <div class="pro-price">{{item.price | currency}}</div>
+                                    <div class="pro-price">{{item.price}}</div>
                                 </a>
                             </li>
                         </ul>

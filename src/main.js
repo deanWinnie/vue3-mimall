@@ -4,6 +4,7 @@ import axios from 'axios'
 import AntD,{message} from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'; 
 import App from './App.vue'
+import store from './store/index'
 
 axios.defaults.baseURL='/api'; //跨域方式为代理的时候用这种方法 不然则要写全域名
 axios.defaults.timeout=8000;
@@ -32,4 +33,4 @@ axios.interceptors.response.use(function(response){
   });
 
 
-createApp(App).use(router).use(AntD).mount('#app')
+createApp(App).use(router).use(store).use(AntD).mount('#app')
