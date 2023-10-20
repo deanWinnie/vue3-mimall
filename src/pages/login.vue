@@ -31,37 +31,31 @@
 
 <script>
 import NavFooter from './../components/NavFooter'
-import { ref } from 'vue'
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
-import axios from 'axios'
-import cookie from 'vue-cookie'
-import {message } from 'ant-design-vue'
+import { getCurrentInstance, ref } from 'vue'
 export default {
   name: 'login',
   components: {
     NavFooter
   },
   setup(){
+    const { proxy } = getCurrentInstance()
     let username = ref('')
     let password = ref('')
     let userId = ref('')
-    let router = useRouter()
-    let store = useStore()
     const login = ()=>{
       if(!username.value || !password.value){
-        message.error('请输入正确的用户名和密码')
+        proxy.$message.error('请输入正确的用户名和密码')
         return
       }
-      axios.post('/user/login', {
+      proxy.$axios.post('/user/login', {
         username:username.value,
         password:password.value
       }).then((res) => {
-        cookie.set('userId', res.id, {
+        proxy.$cookie.set('userId', res.id, {
             expires: 'Session'
         });
-        store.commit('saveUserName',res.username);//vux方法一
-        router.push({
+        proxy.$store.commit('saveUserName',res.username);//vux方法一
+        proxy.$router.push({
             name: 'index',
             params: {
                 from: 'login'
@@ -71,13 +65,12 @@ export default {
     }
     // ...mapActions(['saveUserName']), //vux方法二
     const register = ()=> {
-      router.push('/register')
+      proxy.$router.push('/register')
     }
     return {
       username,
       password,
       userId,
-      store,
       register,
       login
     }

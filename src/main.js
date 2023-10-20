@@ -5,6 +5,7 @@ import AntD,{message} from 'ant-design-vue'
 import 'ant-design-vue/dist/antd.css'; 
 import App from './App.vue'
 import store from './store/index'
+import cookie from 'vue-cookie'
 
 axios.defaults.baseURL='/api'; //跨域方式为代理的时候用这种方法 不然则要写全域名
 axios.defaults.timeout=8000;
@@ -31,6 +32,9 @@ axios.interceptors.response.use(function(response){
     message.error(res.data.message);
     return Promise.reject(error);
   });
+const app = createApp(App)
 
+app.config.globalProperties.$axios = axios;
+app.config.globalProperties.$cookie = cookie;
 
-createApp(App).use(router).use(store).use(AntD).mount('#app')
+app.use(router).use(store).use(AntD).mount('#app')

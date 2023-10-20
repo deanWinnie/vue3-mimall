@@ -4,14 +4,11 @@
     <div class="wrapper">
       <div class="container clearfix">
         <div class="swiper">
-          <swiper :options="swiperOption">
-              <swiper-slide><img src="/imgs/detail/phone-1.jpg" alt=""></swiper-slide>
-              <swiper-slide><img src="/imgs/detail/phone-2.jpg" alt=""></swiper-slide>
-              <swiper-slide><img src="/imgs/detail/phone-3.jpg" alt=""></swiper-slide>
-              <swiper-slide><img src="/imgs/detail/phone-4.jpg" alt=""></swiper-slide>
-              <!-- Optional controls -->
-              <div class="swiper-pagination"  slot="pagination"></div>
-          </swiper>
+          <a-carousel autoplay>
+            <div><a><img src="/imgs/detail/phone-1.jpg" alt=""></a></div>
+            <div><a><img src="/imgs/detail/phone-2.jpg" alt=""></a></div>
+            <div><a><img src="/imgs/detail/phone-3.jpg" alt=""></a></div>
+          </a-carousel>
         </div>
         <div class="content">
           <h2 class="item-title">{{product.name}}</h2>
@@ -26,8 +23,8 @@
           </div>
           <div class="item-version clearfix">
             <h2>选择版本</h2>
-            <div class="phone fl" :class="{'checked':version==1}" @click="version=1">6GB+64GB 全网通</div>
-            <div class="phone fr" :class="{'checked':version==2}" @click="version=2">4GB+64GB 移动4G</div>
+            <div class="phone fl" :class="{' checked':(version==1)}" @click="version=1">6GB+64GB 全网通</div>
+            <div class="phone fr" :class="{'checked':(version==2)}" @click="version=2">4GB+64GB 移动4G</div>
           </div>
           <div class="item-color">
             <h2>选择颜色</h2>
@@ -61,50 +58,45 @@
   </div>
 </template>
 <script>
-import { Swiper, SwiperSlide } from 'vue-awesome-swiper'
+import { getCurrentInstance, onMounted, ref } from 'vue';
 import ProductParam from './../components/ProductParam'
 import ServiceBar from './../components/ServiceBar';
 export default{
   name:'detail',
-  data(){
+    setup(){
+    const { proxy } = getCurrentInstance()
+    let id = ref(proxy.$route.params.id)
+    let product = ref({})
+    let version = ref(1)
+    const getProductInfo = ()=>{
+      proxy.$axios.get(`/products/${id.value}`).then((res)=>{
+          product.value = res;
+      })
+    }
+    const addCart=()=>{
+      proxy.$axios.post('/carts',{
+          productId:id.value,
+          selected:true
+      }).then((res={cartTotalQuantity:0})=>{
+        proxy.$store.dispatch('saveCartCount',res.cartTotalQuantity);
+        //   this.$router.push('/cart');
+      })
+    }
+    onMounted(()=>{
+      getProductInfo()
+    })
     return {
-        id:this.$route.params.id,
-        product:{},
-        version:1,
-        swiperOption:{
-            autoplay:true,
-            pagination: {
-                el: '.swiper-pagination',
-                clickable :true,
-            }
-        }
+      id,
+      product,
+      version,
+      getProductInfo,
+      addCart
     }
   },
   components:{
-    Swiper,
-    SwiperSlide,
     ProductParam,
     ServiceBar
   },
-  mounted(){
-      this.getProductInfo();
-  },
-  methods:{
-      getProductInfo(){
-          this.axios.get(`/products/${this.id}`).then((res)=>{
-              this.product=res;
-          })
-      },
-      addCart(){
-      this.axios.post('/carts',{
-          productId:this.id,
-          selected:true
-      }).then((res={cartTotalQuantity:0})=>{
-          this.$store.dispatch('saveCartCount',res.cartTotalQuantity);
-        //   this.$router.push('/cart');
-      })
-        }
-  }
 }
 </script>
 <style lang="scss">
