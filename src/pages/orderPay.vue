@@ -17,7 +17,7 @@
             </div>
             <div class="order-total">
               <p>应付总额：<span>{{payment}}</span>元</p>
-            <p>订单详情<em class="icon-down" :class="{up:showDetail}"  @click="showDetail=!showDetail"></em></p>
+              <p>订单详情<em class="icon-down" :class="{up:showDetail}"  @click="(showDetail=!showDetail)"></em></p>
             </div>
           </div>
           <div class="item-detail" v-if="showDetail">
@@ -49,8 +49,8 @@
           <h3>选择以下支付方式付款</h3>
           <div class="pay-way">
             <p>支付平台</p>
-            <div class="pay pay-ali" :class="{'checked':payType==1}" @click="paySubmit(1)"></div>
-            <div class="pay pay-wechat" :class="{'checked':payType==2}" @click="paySubmit(2)"></div>
+            <div class="pay pay-ali" :class="{'checked':(payType==1)}" @click="(paySubmit(1))"></div>
+            <div class="pay pay-wechat" :class="{'checked':(payType==2)}" @click="(paySubmit(2))"></div>
           </div>
         </div>
       </div>
@@ -76,81 +76,95 @@ import ScanPayCode from './../components/ScanPayCode'
 import QRCode from 'qrcode'
 import Modal from './../components/Modal'
 import OrderHeader from './../components/OrderHeader'
+import { getCurrentInstance, onMounted, ref } from 'vue'
 export default{
   name:'order-pay',
-  data(){
-    return {
-        orderId:this.$route.query.orderNo,
-        addressInfo:'',
-        payment:'',
-        orderDetail:[],//订单详情包含了商品列表
-        showDetail:false,//是否显示订单详情
-        showPay:false,//是否显示微信支付弹框
-        payType:'',
-        payImg:'',//微支付的二维码地址
-        showPayModal:false,//是否显示二次支付的弹框
-        T:""//定时器ID
-    }
-  },
   components:{
     ScanPayCode,
     Modal,
     OrderHeader
   },
-  mounted(){
-      this.getOrderDetail();
-  },
-  methods:{
+  setup(){
+    const { proxy } = getCurrentInstance()
+    let orderId = ref(proxy.$route.query.orderNo)
+    let addressInfo = ref('')
+    let payment = ref('')
+    let orderDetail = ref([])//订单详情包含了商品列表
+    let showDetail = ref(false)//是否显示订单详情
+    let showPay = ref(false)//是否显示微信支付弹框
+    let payType = ref('')
+    let payImg = ref('')//微支付的二维码地址
+    let showPayModal = ref(false)//是否显示二次支付的弹框
+    let T = ref("")//定时器ID
     // 关闭微信弹框
-    closePayModal(){
-      this.showPay = false;
-      this.showPayModal = true;
-      clearInterval(this.T);
-    },
-    goOrderList(){
-      this.$router.push('/order/list');
-    },
-    getOrderDetail(){
-        this.axios.get(`/orders/${this.orderId}`).then((res)=>{
-            let item=res.shippingVo;
-            this.addressInfo=`${item.receiverName} ${item.receiverMobile} ${item.receiverProvince} ${item.receiverCity} ${item.receiverDistrict} ${item.receiverAddress}`
-            this.orderDetail=res.orderItemVoList;
-            this.payment=res.payment;
-        })
-    },
-    paySubmit(payType){
+    const closePayModal = ()=>{
+      showPay.value = false;
+      showPayModal.value = true;
+      clearInterval(T);
+    }
+    const goOrderList = ()=>{
+      proxy.$router.push('/order/list');
+    }
+    const getOrderDetail = ()=>{
+      proxy.$axios.get(`/orders/${orderId.value}`).then((res)=>{
+        let item=res.shippingVo;
+        addressInfo.value=`${item.receiverName} ${item.receiverMobile} ${item.receiverProvince} ${item.receiverCity} ${item.receiverDistrict} ${item.receiverAddress}`
+        orderDetail.value=res.orderItemVoList;
+        payment.value=res.payment;
+      })
+    }
+    const paySubmit = (payType)=>{
         if(payType==1){
-            window.open('/#/order/alipay?orderId='+this.orderId,'_blank');
+            window.open('/#/order/alipay?orderId='+orderId.value,'_blank');
         }else{
-          this.axios.post('/pay',{
-                orderId:this.orderId,
-                orderName:'手机订单',
-                amount:0.01,
-                payType:2//1支付宝，2微信
+          proxy.$axios.post('/pay',{
+            orderId:orderId.value,
+            orderName:'手机订单',
+            amount:0.01,
+            payType:2//1支付宝，2微信
             }).then((res)=>{
-                QRCode.toDataURL(res.content)
-                .then(url => {
-                  this.showPay=true;
-                  this.payImg=url;
-                  this.loopOrderState();
-                })
-                .catch(()=> {
-                  this.$message.error('微信二维码生成失败，请稍后重试')
-                }) 
+              QRCode.toDataURL(res.content)
+              .then(url => {
+                showPay.value=true;
+                payImg.value=url;
+                loopOrderState();
+              })
+              .catch(()=> {
+                proxy.$message.error('微信二维码生成失败，请稍后重试')
+              }) 
             })
         }
-    },
-    loopOrderState(){
-      this.T=setInterval(()=>{
-        this.axios.get(`/orders/${this.orderId}`).then((res)=>{
+    }
+    const loopOrderState = ()=>{
+      T=setInterval(()=>{
+        proxy.axios.get(`/orders/${this.orderId}`).then((res)=>{
           if(res.status==20){
-            clearInterval(this.T);
-            this.goOrderList();
+            clearInterval(T);
+            goOrderList();
           }
         })
       },1000)
     }
-  }
+    onMounted(()=>{
+      getOrderDetail()
+    })
+    return {
+      orderId,
+      addressInfo,
+      payment,
+      orderDetail,
+      showDetail,
+      showPay,
+      payType,
+      payImg,
+      showPayModal,
+      T,
+      closePayModal,
+      getOrderDetail,
+      paySubmit,
+      loopOrderState
+    }
+  },
 }
 </script>
 <style lang="scss">

@@ -23,7 +23,7 @@ export default {
     },
     methods:{
        paySubmit(){
-            this.axios.post('/pay',{
+            this.$axios.post('/pay',{
                 orderId:this.orderId,
                 orderName:'手机订单',
                 amount:0.01,

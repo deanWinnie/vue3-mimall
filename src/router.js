@@ -54,21 +54,21 @@ export default new createRouter({
                     name:'order-list',
                     component:() => import('./pages/orderList.vue'),
                 },
-                // {
-                //     path:'pay',
-                //     name:'order-pay',
-                //     component:resolve=>require(['./pages/orderPay.vue'],resolve),
-                // },
-                // {
-                //     path:'confirm',
-                //     name:'order-confirm',
-                //     component:resolve=>require(['./pages/orderConfirm.vue'],resolve),
-                // },
-                // {
-                //     path:'alipay',
-                //     name:'ali-pay',
-                //     component:resolve=>require(['./pages/alipay.vue'],resolve),
-                // }
+                {
+                    path:'pay',
+                    name:'order-pay',
+                    component:() => import('./pages/orderPay.vue'),
+                },
+                {
+                    path:'confirm',
+                    name:'order-confirm',
+                    component:() => import('./pages/orderConfirm.vue'),
+                },
+                {
+                    path:'alipay',
+                    name:'ali-pay',
+                    component:() => import('./pages/alipay.vue'),
+                }
             ]
         }
 

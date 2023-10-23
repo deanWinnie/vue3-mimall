@@ -30,7 +30,7 @@
           <div class="item-address">
             <h2 class="addr-title">收货地址</h2>
             <div class="addr-list clearfix">
-              <div class="addr-info" :class="{'checked':index==checkIndex}" @click="checkIndex=index" v-for="(item,index) in list" :key="index">
+              <div class="addr-info" :class="{'checked':(index==checkIndex)}" @click="checkIndex=index" v-for="(item,index) in list" :key="index">
                 <h2>{{item.receiverName}}</h2>
                 <div class="phone">{{item.receiverMobile}}</div>
                 <div class="street">{{item.receiverProvince+' '+item.receiverCity+' '+item.receiverDistrict+' '+item.receiverAddress+' '}}</div>
@@ -54,7 +54,7 @@
             <ul>
               <li v-for="(item,index) in cartList" :key="index">
                 <div class="good-name">
-                  <img v-lazy="item.productMainImage" alt="">
+                  <img :src="item.productMainImage" alt="">
                   <span>{{item.productName+' '+item.productSubtitle}}</span>
                 </div>
                 <div class="good-price">{{item.productPrice}}元x{{item.quantity}}</div>
@@ -192,161 +192,181 @@
 import Modal from './../components/Modal'
 import OrderHeader from './../components/OrderHeader'
 import Address from './../api/address.json'
+import { getCurrentInstance, ref } from 'vue'
 export default{
     name:'order-confirm',
-    data(){
-        return {
-            list:[],
-            cartList:[],
-            cartTotalPrice:0,
-            count:0,//商品结算数量
-            checkedItem:{},//选中的商品的对象
-            userAction:'',//用户行为 0：新增 1：编辑 2：删除
-            showDelModal:false,//是否显示删除弹框,
-            showEditModal:false,//是否显示新增弹框
-            checkIndex:0,//当前收货地址选中的索引,
-            addressData:[],
-            addressDataCity:[],
-            addressDataDistrict:[]
+    setup(){
+      const { proxy } = getCurrentInstance()
+      let list = ref([])
+      let cartList = ref([])
+      let cartTotalPrice = ref(0)
+      let count = ref(0)//商品结算数量
+      let checkedItem = ref({})//选中的商品的对象
+      let userAction = ref('')//用户行为 0：新增 1：编辑 2：删除
+      let showDelModal = ref(false)//是否显示删除弹框,
+      let showEditModal = ref(false)//是否显示新增弹框
+      let checkIndex = ref(0)//当前收货地址选中的索引,
+      let addressData = ref([])
+      let addressDataCity = ref([])
+      let addressDataDistrict = ref([])
+      const changeProvince = ()=>{
+        for(let i in addressData.value){
+          if(addressData.value[i].provinceName==checkedItem.value.receiverProvince){
+            addressDataCity.value=addressData.value[i].mallCityList;
+            checkedItem.value.receiverCity=addressData.value[i].mallCityList[0].cityName;
+            addressDataDistrict.value=addressData.value[i].mallCityList[0].mallAreaList;
+            checkedItem.value.receiverDistrict=addressData[i].value.mallCityList[0].mallAreaList[0].areaName;
+          }
         }
+      }
+      const changeCity = ()=>{
+        for(let i in addressDataCity.value){
+          if(addressDataCity.value[i].cityName==checkedItem.value.receiverCity){
+            addressDataDistrict.value=addressDataCity[i].value.mallAreaList;
+            checkedItem.value.receiverDistrict=addressDataCity[i].value.mallAreaList[0].areaName;
+          }
+        }
+      }
+      const getAddressList = ()=>{
+        proxy.$axios.get('/shippings').then((res)=>{
+          list.value=res.list;
+        })
+      }
+      //打开新增地址弹框
+      const openAddressModal = ()=>{
+        checkedItem.value={};
+        userAction.value=0;
+        showEditModal.value=true;
+        addressData.value= Address.Area;
+        addressDataCity.value=addressData.value[0].mallCityList;
+        addressDataDistrict.value=addressData.value[0].mallCityList[0].mallAreaList;
+        checkedItem.value.receiverProvince=addressData.value[0].provinceName;
+        checkedItem.value.receiverCity=addressDataCity.value[0].cityName;
+        checkedItem.value.receiverDistrict= addressDataDistrict.value[0].areaName;
+      }
+        //打开新增地址弹框
+      const editAddressModal = (item)=>{
+        checkedItem.value=item
+        userAction.value=1
+        showEditModal.value=true
+      }
+      const delAddress = (item)=>{
+        checkedItem.value=item;
+        userAction.value=2;
+        showDelModal.value=true;
+      }
+      const submitAddress=()=>{
+          let url,method,params={};
+          if(userAction.value==0){
+              method='post';
+              url='/shippings';
+          }else if(userAction.value==1){
+              method='put';
+              url=`/shippings/${checkedItem.value.id}`;
+          }else{
+              method='delete';
+              url=`/shippings/${checkedItem.value.id}`;
+          }
+          if(userAction.value==0 || userAction.value==1){
+            let {receiverName,receiverMobile,receiverProvince,receiverCity,receiverDistrict,receiverAddress,receiverZip}=checkedItem.value;
+            let errMsg='';
+            if(!receiverName){
+              errMsg='请输入收货人名称';
+            }else if(!receiverMobile || !/\d{11}/.test(receiverMobile)){
+              errMsg='请输入正确格式的手机号';
+            }else if(!receiverProvince||receiverProvince==="请选择省份"){
+              errMsg='请选择省份';
+            }else if(!receiverCity||receiverCity==="请选择城市"){
+              errMsg='请选择城市';
+            }else if(!receiverDistrict || !receiverAddress){
+              errMsg='请输入收货地址';
+            }else if(!/\d{6}/.test(receiverZip)){
+              errMsg='请输入6位邮编';
+            }
+            if(errMsg){
+              proxy.$message.error(errMsg);
+              return;
+            }
+            params = {
+              receiverName,
+              receiverMobile,
+              receiverProvince,
+              receiverCity,
+              receiverDistrict,
+              receiverAddress,
+              receiverZip
+            }
+          }
+          proxy.$axios[method](url,params).then(()=>{
+              closeModal();
+              getAddressList();
+              proxy.$message.success('操作成功');
+          })
+      }
+      const closeModal=()=>{
+        checkedItem.value={};
+        userAction.value='';
+        showDelModal.value=false;
+        showEditModal.value=false;
+      }
+      const getCartList = ()=>{
+        proxy.$axios.get('/carts').then((res)=>{
+          let list =res.cartProductVoList;//获取购物车中所有的商品数据
+          cartTotalPrice.value=res.cartTotalPrice;//商品总金额
+          cartList.value=list.filter(item=>item.productSelected);//过滤未选中的商品
+          cartList.value.map((item)=>{//选中商品数量的遍历
+              count.value +=item.quantity; 
+          })
+        })
+      }
+        //订单提交
+      const orderSubmit=()=>{
+        let item=list.value[checkIndex.value];
+        if(!item){
+          proxy.$message.error('请选择一个收货地址');
+          return;
+        }
+        proxy.$axios.post('/orders',{
+          shippingId:item.id
+        }).then((res)=>{
+          proxy.$router.push({
+            path:'/order/pay',
+            query:{
+              orderNo:res.orderNo
+            }
+          })
+        })
+      }
+      return {
+        list,
+        cartList,
+        cartTotalPrice,
+        count,
+        checkedItem,
+        userAction,
+        showDelModal,
+        showEditModal,
+        checkIndex,
+        addressData,
+        addressDataCity,
+        addressDataDistrict,
+        orderSubmit,
+        getCartList,
+        closeModal,
+        submitAddress,
+        delAddress,
+        editAddressModal,
+        openAddressModal,
+        getAddressList,
+        changeCity,
+        changeProvince
+      }
     },
     mounted(){
         this.getAddressList();
         this.getCartList();
     },
     methods:{
-      changeProvince(){
-        for(let i in this.addressData){
-          if(this.addressData[i].provinceName==this.checkedItem.receiverProvince){
-            this.addressDataCity=this.addressData[i].mallCityList;
-            this.checkedItem.receiverCity=this.addressData[i].mallCityList[0].cityName;
-            this.addressDataDistrict=this.addressData[i].mallCityList[0].mallAreaList;
-            this.checkedItem.receiverDistrict=this.addressData[i].mallCityList[0].mallAreaList[0].areaName;
-          }
-        }
-      },
-      changeCity(){
-        for(let i in this.addressDataCity){
-          if(this.addressDataCity[i].cityName==this.checkedItem.receiverCity){
-            this.addressDataDistrict=this.addressDataCity[i].mallAreaList;
-            this.checkedItem.receiverDistrict=this.addressDataCity[i].mallAreaList[0].areaName;
-          }
-        }
-      },
-        getAddressList(){
-            this.axios.get('/shippings').then((res)=>{
-                this.list=res.list;
-            })
-        },
-        //打开新增地址弹框
-        openAddressModal(){
-          this.checkedItem={};
-          this.userAction=0;
-          this.showEditModal=true;
-          this.addressData= Address.Area;
-          this.addressDataCity=this.addressData[0].mallCityList;
-          this.addressDataDistrict=this.addressData[0].mallCityList[0].mallAreaList;
-          this.checkedItem.receiverProvince=this.addressData[0].provinceName;
-          this.checkedItem.receiverCity=this.addressDataCity[0].cityName;
-          this.checkedItem.receiverDistrict= this.addressDataDistrict[0].areaName;
-          console.log(this.checkedItem.receiverProvince);
-          console.log(Address.Area.provinceName);
-        },
-        //打开新增地址弹框
-        editAddressModal(item){
-          this.checkedItem=item;
-          this.userAction=1;
-          this.showEditModal=true;
-        },
-        delAddress(item){
-            this.checkedItem=item;
-            this.userAction=2;
-            this.showDelModal=true;
-       },
-        submitAddress(){
-            let {checkedItem,userAction}=this;
-            let url,method,params={};
-            if(userAction==0){
-                method='post';
-                url='/shippings';
-            }else if(userAction==1){
-                method='put';
-                url=`/shippings/${checkedItem.id}`;
-            }else{
-                method='delete';
-                url=`/shippings/${checkedItem.id}`;
-            }
-            if(userAction==0 || userAction==1){
-              let {receiverName,receiverMobile,receiverProvince,receiverCity,receiverDistrict,receiverAddress,receiverZip}=checkedItem;
-              let errMsg='';
-              if(!receiverName){
-                errMsg='请输入收货人名称';
-              }else if(!receiverMobile || !/\d{11}/.test(receiverMobile)){
-                errMsg='请输入正确格式的手机号';
-              }else if(!receiverProvince||receiverProvince==="请选择省份"){
-                errMsg='请选择省份';
-              }else if(!receiverCity||receiverCity==="请选择城市"){
-                errMsg='请选择城市';
-              }else if(!receiverDistrict || !receiverAddress){
-                errMsg='请输入收货地址';
-              }else if(!/\d{6}/.test(receiverZip)){
-                errMsg='请输入6位邮编';
-              }
-              if(errMsg){
-                this.$message.error(errMsg);
-                return;
-              }
-              console.log(receiverDistrict);
-              params={
-                receiverName,
-                receiverMobile,
-                receiverProvince,
-                receiverCity,
-                receiverDistrict,
-                receiverAddress,
-                receiverZip
-              }
-            }
-            this.axios[method](url,params).then(()=>{
-                this.closeModal();
-                this.getAddressList();
-                this.$message.success('操作成功');
-            })
-        },
-        closeModal(){
-            this.checkedItem={};
-            this.userAction='';
-            this.showDelModal=false;
-            this.showEditModal=false;
-       },
-        getCartList(){
-            this.axios.get('/carts').then((res)=>{
-                let list =res.cartProductVoList;//获取购物车中所有的商品数据
-                this.cartTotalPrice=res.cartTotalPrice;//商品总金额
-                this.cartList=list.filter(item=>item.productSelected);//过滤未选中的商品
-                this.cartList.map((item)=>{//选中商品数量的遍历
-                    this.count +=item.quantity; 
-                })
-            })
-        },
-        //订单提交
-        orderSubmit(){
-          let item=this.list[this.checkIndex];
-          if(!item){
-            this.$message.error('请选择一个收货地址');
-            return;
-          }
-          this.axios.post('/orders',{
-            shippingId:item.id
-          }).then((res)=>{
-            this.$router.push({
-              path:'/order/pay',
-              query:{
-                orderNo:res.orderNo
-              }
-            })
-          })
-        }
     },
     components:{
         Modal,
